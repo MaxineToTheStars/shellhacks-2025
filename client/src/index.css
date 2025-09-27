@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-taupe-50 text-sage-900 font-serif;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-medium;
+  }
+}
+
+@layer components {
+  /* MindPath Button Styles */
+  .btn-primary {
+    @apply bg-sage-500 hover:bg-sage-600 text-white font-sans font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+  }
+  
+  .btn-secondary {
+    @apply bg-taupe-200 hover:bg-taupe-300 text-sage-800 font-sans font-medium py-3 px-6 rounded-lg transition-all duration-200 border border-taupe-300;
+  }
+  
+  .btn-accent {
+    @apply bg-gold-300 hover:bg-gold-400 text-sage-900 font-sans font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+  }
+  
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-sans font-medium py-3 px-6 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+  }
+  
+  /* MindPath Input Styles */
+  .input-field {
+    @apply w-full px-4 py-3 border border-taupe-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-sage-400 bg-taupe-50 text-sage-900 placeholder-sage-500 font-serif;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .input-field:focus {
+    @apply bg-white;
+  }
+  
+  /* MindPath Card Styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-taupe-200 overflow-hidden;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .card:hover {
+    @apply shadow-md border-taupe-300;
+  }
+  
+  /* MindPath Journey Path Visual Element */
+  .journey-path {
+    position: relative;
+  }
+  
+  .journey-path::before {
+    content: '';
+    position: absolute;
+    left: -1rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, 
+      theme('colors.sage.300'), 
+      theme('colors.sage.500'), 
+      theme('colors.gold.300')
+    );
+    border-radius: 1px;
+  }
+  
+  /* MindPath Logo-inspired decorative element */
+  .mindpath-accent {
+    position: relative;
+  }
+  
+  .mindpath-accent::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, 
+      theme('colors.sage.400'), 
+      theme('colors.gold.300')
+    );
+    border-radius: 2px;
+  }
+}
