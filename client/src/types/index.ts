@@ -21,6 +21,7 @@ export interface ApiResponse<T> {
   notes?: T[];
   count?: number;
   result?: any;
+  shouldTriggerAnalysis?: boolean;
 }
 
 export interface ApiError {

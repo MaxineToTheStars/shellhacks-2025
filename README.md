@@ -174,15 +174,51 @@ curl -X DELETE http://localhost:3000/api/notes/1
 
 ```
 shellhacks-2025/
-├── server/
-│   ├── package.json
-│   └── server.js          # Express.js server
-├── database/
-│   ├── package.json
-│   ├── database.js        # Database operations
-│   └── notes.db          # SQLite database file (created automatically)
-├── test-api.js           # API test suite
-└── README.md
+├── client/                    # React frontend application
+│   ├── public/
+│   │   └── index.html
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   │   ├── AnalysisLogView.tsx
+│   │   │   ├── AnalysisModal.tsx
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── Note.tsx
+│   │   │   ├── NoteForm.tsx
+│   │   │   └── UserProfile.tsx
+│   │   ├── services/          # API service layer
+│   │   │   └── api.ts
+│   │   ├── types/             # TypeScript type definitions
+│   │   │   └── index.ts
+│   │   ├── App.tsx            # Main React application
+│   │   ├── index.tsx          # React entry point
+│   │   └── index.css          # Global styles
+│   ├── package.json           # Frontend dependencies
+│   ├── package-lock.json
+│   ├── tailwind.config.js     # Tailwind CSS configuration
+│   ├── postcss.config.js      # PostCSS configuration
+│   ├── webpack.config.js      # Webpack configuration
+│   ├── tsconfig.json          # TypeScript configuration
+│   ├── env.example            # Environment variables template
+│   └── README.md              # Frontend documentation
+├── server/                    # Node.js backend server
+│   ├── package.json           # Backend dependencies
+│   ├── package-lock.json
+│   ├── server.js              # Express.js server
+│   ├── geminiService.js       # Gemini AI service integration
+│   └── env.example            # Environment variables template
+├── database/                  # Database layer
+│   ├── package.json           # Database dependencies
+│   ├── package-lock.json
+│   ├── database.js            # Database operations
+│   └── notes.db               # SQLite database file (created automatically)
+├── scripts/                   # Automation scripts
+│   ├── install.sh             # Install all dependencies
+│   ├── run.sh                 # Start the application
+│   ├── stop.sh                # Stop the application
+│   └── clean.sh               # Clean project files
+├── AUTH0_SETUP.md             # Auth0 configuration guide
+├── LICENSE.md                 # Project license
+└── README.md                  # Project documentation
 ```
 
 ## 🧪 Testing
