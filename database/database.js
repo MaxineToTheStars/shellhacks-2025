@@ -18,6 +18,7 @@ function initializeDatabase() {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS notes (
             note_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
             title TEXT NOT NULL,
             content TEXT NOT NULL,
             last_updated TEXT
@@ -43,17 +44,18 @@ function getCurrentTimestamp() {
 // that are properly handled by the API and should not be treated as system errors
 const dbOperations = {
     // Create a new note
-    createNote: (title, content) => {
+    createNote: (userId, title, content) => {
         return new Promise((resolve, reject) => {
             const timestamp = getCurrentTimestamp();
-            const query = 'INSERT INTO notes (title, content, last_updated) VALUES (?, ?, ?)';
+            const query = 'INSERT INTO notes (user_id, title, content, last_updated) VALUES (?, ?, ?, ?)';
             
-            db.run(query, [title, content, timestamp], function(err) {
+            db.run(query, [userId, title, content, timestamp], function(err) {
                 if (err) {
                     reject(err);
                 } else {
                     resolve({
                         note_id: this.lastID,
+                        user_id: userId,
                         title,
                         content,
                         last_updated: timestamp
@@ -63,12 +65,12 @@ const dbOperations = {
         });
     },
 
-    // Get all notes sorted by last_updated (newest first)
-    getAllNotes: () => {
+    // Get all notes for a specific user sorted by last_updated (newest first)
+    getAllNotes: (userId) => {
         return new Promise((resolve, reject) => {
-            const query = 'SELECT * FROM notes ORDER BY last_updated DESC';
+            const query = 'SELECT * FROM notes WHERE user_id = ? ORDER BY last_updated DESC';
             
-            db.all(query, [], (err, rows) => {
+            db.all(query, [userId], (err, rows) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -78,12 +80,12 @@ const dbOperations = {
         });
     },
 
-    // Get a single note by ID
-    getNoteById: (id) => {
+    // Get a single note by ID and user_id
+    getNoteById: (id, userId) => {
         return new Promise((resolve, reject) => {
-            const query = 'SELECT * FROM notes WHERE note_id = ?';
+            const query = 'SELECT * FROM notes WHERE note_id = ? AND user_id = ?';
             
-            db.get(query, [id], (err, row) => {
+            db.get(query, [id, userId], (err, row) => {
                 if (err) {
                     reject(err);
                 } else if (!row) {
@@ -95,13 +97,13 @@ const dbOperations = {
         });
     },
 
-    // Update a note by ID
-    updateNote: (id, title, content) => {
+    // Update a note by ID and user_id
+    updateNote: (id, userId, title, content) => {
         return new Promise((resolve, reject) => {
             const timestamp = getCurrentTimestamp();
-            const query = 'UPDATE notes SET title = ?, content = ?, last_updated = ? WHERE note_id = ?';
+            const query = 'UPDATE notes SET title = ?, content = ?, last_updated = ? WHERE note_id = ? AND user_id = ?';
             
-            db.run(query, [title, content, timestamp, id], function(err) {
+            db.run(query, [title, content, timestamp, id, userId], function(err) {
                 if (err) {
                     reject(err);
                 } else if (this.changes === 0) {
@@ -109,6 +111,7 @@ const dbOperations = {
                 } else {
                     resolve({
                         note_id: id,
+                        user_id: userId,
                         title,
                         content,
                         last_updated: timestamp
@@ -118,12 +121,12 @@ const dbOperations = {
         });
     },
 
-    // Delete a note by ID
-    deleteNote: (id) => {
+    // Delete a note by ID and user_id
+    deleteNote: (id, userId) => {
         return new Promise((resolve, reject) => {
-            const query = 'DELETE FROM notes WHERE note_id = ?';
+            const query = 'DELETE FROM notes WHERE note_id = ? AND user_id = ?';
             
-            db.run(query, [id], function(err) {
+            db.run(query, [id, userId], function(err) {
                 if (err) {
                     reject(err);
                 } else if (this.changes === 0) {

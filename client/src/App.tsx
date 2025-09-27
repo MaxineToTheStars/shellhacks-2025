@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Note as NoteType } from './types';
 import { apiService } from './services/api';
 import { NoteForm } from './components/NoteForm';
 import { Note } from './components/Note';
+import LoginPage from './components/LoginPage';
+import UserProfile from './components/UserProfile';
 
 function App() {
+  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0();
   const [notes, setNotes] = useState<NoteType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load all notes on component mount
+  // Set up API service with access token provider
   useEffect(() => {
-    loadNotes();
-  }, []);
+    if (isAuthenticated) {
+      apiService.setAccessTokenProvider(getAccessTokenSilently);
+      loadNotes();
+    }
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   const loadNotes = async () => {
     try {
@@ -80,6 +87,24 @@ function App() {
     loadNotes();
   };
 
+  // Show loading state while Auth0 is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // Show loading state while notes are loading
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -95,17 +120,22 @@ function App() {
     <div className="min-h-screen bg-taupe-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center mb-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-3 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
+        <div className="mb-8">
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-center flex-1">
+              <div className="inline-flex items-center mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-3 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h1 className="text-4xl font-bold text-sage-900">MindPath</h1>
+              </div>
+              <p className="text-lg text-sage-700 font-serif italic">Write your path to wellness</p>
+              <p className="text-sage-600 mt-2">Navigate your thoughts. Chart your growth.</p>
             </div>
-            <h1 className="text-4xl font-bold text-sage-900">MindPath</h1>
+            <UserProfile />
           </div>
-          <p className="text-lg text-sage-700 font-serif italic">Write your path to wellness</p>
-          <p className="text-sage-600 mt-2">Navigate your thoughts. Chart your growth.</p>
         </div>
 
         {/* Error Message */}

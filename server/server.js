@@ -1,10 +1,40 @@
+// Load environment variables
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const { expressjwt: jwt } = require('express-jwt');
+const jwks = require('jwks-rsa');
 const { dbOperations } = require('../database/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Auth0 Configuration
+const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'your-auth0-domain.auth0.com';
+const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE || 'your-auth0-api-identifier';
+
+// Debug: Log Auth0 configuration (remove in production)
+console.log('Auth0 Server Config:', {
+  domain: AUTH0_DOMAIN,
+  audience: AUTH0_AUDIENCE,
+  hasEnvFile: !!process.env.AUTH0_DOMAIN
+});
+
+// JWT middleware configuration
+const jwtCheck = jwt({
+    secret: jwks.expressJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: `https://${AUTH0_DOMAIN}/.well-known/jwks.json`
+    }),
+    audience: AUTH0_AUDIENCE,
+    issuer: `https://${AUTH0_DOMAIN}/`,
+    algorithms: ['RS256'],
+    requestProperty: 'user'
+});
 
 // CORS configuration
 const corsOptions = {
@@ -37,9 +67,10 @@ app.get('/health', (req, res) => {
 // API Routes
 
 // POST /api/notes - Create a new note
-app.post('/api/notes', async (req, res) => {
+app.post('/api/notes', jwtCheck, async (req, res) => {
     try {
         const { title, content } = req.body;
+        const userId = req.user.sub; // Auth0 user ID
 
         // Validation
         if (!title || !content) {
@@ -56,7 +87,7 @@ app.post('/api/notes', async (req, res) => {
             });
         }
 
-        const newNote = await dbOperations.createNote(title, content);
+        const newNote = await dbOperations.createNote(userId, title, content);
         res.status(201).json({
             message: 'Note created successfully',
             note: newNote
@@ -70,10 +101,11 @@ app.post('/api/notes', async (req, res) => {
     }
 });
 
-// GET /api/notes - Get all notes
-app.get('/api/notes', async (req, res) => {
+// GET /api/notes - Get all notes for authenticated user
+app.get('/api/notes', jwtCheck, async (req, res) => {
     try {
-        const notes = await dbOperations.getAllNotes();
+        const userId = req.user.sub; // Auth0 user ID
+        const notes = await dbOperations.getAllNotes(userId);
         res.json({
             message: 'Notes retrieved successfully',
             count: notes.length,
@@ -89,9 +121,10 @@ app.get('/api/notes', async (req, res) => {
 });
 
 // GET /api/notes/:id - Get a single note by ID
-app.get('/api/notes/:id', async (req, res) => {
+app.get('/api/notes/:id', jwtCheck, async (req, res) => {
     try {
         const noteId = parseInt(req.params.id);
+        const userId = req.user.sub; // Auth0 user ID
 
         // Validation
         if (isNaN(noteId) || noteId <= 0) {
@@ -101,7 +134,7 @@ app.get('/api/notes/:id', async (req, res) => {
             });
         }
 
-        const note = await dbOperations.getNoteById(noteId);
+        const note = await dbOperations.getNoteById(noteId, userId);
         res.json({
             message: 'Note retrieved successfully',
             note: note
@@ -124,10 +157,11 @@ app.get('/api/notes/:id', async (req, res) => {
 });
 
 // PUT /api/notes/:id - Update a note by ID
-app.put('/api/notes/:id', async (req, res) => {
+app.put('/api/notes/:id', jwtCheck, async (req, res) => {
     try {
         const noteId = parseInt(req.params.id);
         const { title, content } = req.body;
+        const userId = req.user.sub; // Auth0 user ID
 
         // Validation
         if (isNaN(noteId) || noteId <= 0) {
@@ -151,7 +185,7 @@ app.put('/api/notes/:id', async (req, res) => {
             });
         }
 
-        const updatedNote = await dbOperations.updateNote(noteId, title, content);
+        const updatedNote = await dbOperations.updateNote(noteId, userId, title, content);
         res.json({
             message: 'Note updated successfully',
             note: updatedNote
@@ -174,10 +208,11 @@ app.put('/api/notes/:id', async (req, res) => {
 });
 
 // PATCH /api/notes/:id - Partial update of a note by ID
-app.patch('/api/notes/:id', async (req, res) => {
+app.patch('/api/notes/:id', jwtCheck, async (req, res) => {
     try {
         const noteId = parseInt(req.params.id);
         const { title, content } = req.body;
+        const userId = req.user.sub; // Auth0 user ID
 
         // Validation
         if (isNaN(noteId) || noteId <= 0) {
@@ -188,7 +223,7 @@ app.patch('/api/notes/:id', async (req, res) => {
         }
 
         // Get existing note first
-        const existingNote = await dbOperations.getNoteById(noteId);
+        const existingNote = await dbOperations.getNoteById(noteId, userId);
 
         // Use existing values if not provided
         const updatedTitle = title !== undefined ? title : existingNote.title;
@@ -209,7 +244,7 @@ app.patch('/api/notes/:id', async (req, res) => {
             });
         }
 
-        const updatedNote = await dbOperations.updateNote(noteId, updatedTitle, updatedContent);
+        const updatedNote = await dbOperations.updateNote(noteId, userId, updatedTitle, updatedContent);
         res.json({
             message: 'Note updated successfully',
             note: updatedNote
@@ -232,9 +267,10 @@ app.patch('/api/notes/:id', async (req, res) => {
 });
 
 // DELETE /api/notes/:id - Delete a note by ID
-app.delete('/api/notes/:id', async (req, res) => {
+app.delete('/api/notes/:id', jwtCheck, async (req, res) => {
     try {
         const noteId = parseInt(req.params.id);
+        const userId = req.user.sub; // Auth0 user ID
 
         // Validation
         if (isNaN(noteId) || noteId <= 0) {
@@ -244,7 +280,7 @@ app.delete('/api/notes/:id', async (req, res) => {
             });
         }
 
-        const result = await dbOperations.deleteNote(noteId);
+        const result = await dbOperations.deleteNote(noteId, userId);
         res.json({
             message: 'Note deleted successfully',
             result: result

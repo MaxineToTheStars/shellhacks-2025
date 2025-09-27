@@ -1,27 +1,30 @@
-# Node.js/Express.js SQLite Note Management API
+# MindPath - Personal Notes App with Auth0
 
-A RESTful API for managing notes built with Node.js, Express.js, and SQLite database.
+A full-stack personal notes application with Google OAuth authentication, built with React, Node.js, Express.js, and SQLite database.
 
 ## 🚀 Features
 
-- **CRUD Operations**: Create, Read, Update, and Delete notes
-- **SQLite Database**: Lightweight, file-based database
-- **RESTful API**: Standard HTTP methods and status codes
-- **Input Validation**: Comprehensive request validation
-- **Error Handling**: Proper error responses and status codes
-- **Timestamp Management**: Automatic ISO 8601 timestamp generation
+- **🔐 Google OAuth Authentication**: Secure login with Auth0 and Google
+- **👤 User-Specific Notes**: Each user has their own private notes
+- **📝 CRUD Operations**: Create, Read, Update, and Delete notes
+- **🗄️ SQLite Database**: Lightweight, file-based database with user isolation
+- **🎨 Modern UI**: Beautiful, responsive interface with Tailwind CSS
+- **🔒 JWT Security**: Secure API endpoints with JWT token validation
+- **⚡ Real-time Updates**: Instant UI updates with React state management
 
 ## 📋 API Endpoints
 
-| Method | Endpoint | Description | Request Body |
-|--------|----------|-------------|--------------|
-| `GET` | `/health` | Health check endpoint | None |
-| `POST` | `/api/notes` | Create a new note | `{"title": "...", "content": "..."}` |
-| `GET` | `/api/notes` | Get all notes (newest first) | None |
-| `GET` | `/api/notes/:id` | Get a single note by ID | None |
-| `PUT` | `/api/notes/:id` | Update a note (full update) | `{"title": "...", "content": "..."}` |
-| `PATCH` | `/api/notes/:id` | Update a note (partial update) | `{"title": "..."}` or `{"content": "..."}` |
-| `DELETE` | `/api/notes/:id` | Delete a note by ID | None |
+> **Note**: All `/api/notes` endpoints require JWT authentication via `Authorization: Bearer <token>` header.
+
+| Method | Endpoint | Description | Request Body | Auth Required |
+|--------|----------|-------------|--------------|---------------|
+| `GET` | `/health` | Health check endpoint | None | ❌ |
+| `POST` | `/api/notes` | Create a new note | `{"title": "...", "content": "..."}` | ✅ |
+| `GET` | `/api/notes` | Get all notes for authenticated user | None | ✅ |
+| `GET` | `/api/notes/:id` | Get a single note by ID | None | ✅ |
+| `PUT` | `/api/notes/:id` | Update a note (full update) | `{"title": "...", "content": "..."}` | ✅ |
+| `PATCH` | `/api/notes/:id` | Update a note (partial update) | `{"title": "..."}` or `{"content": "..."}` | ✅ |
+| `DELETE` | `/api/notes/:id` | Delete a note by ID | None | ✅ |
 
 ## 🗄️ Database Schema
 
@@ -30,15 +33,49 @@ A RESTful API for managing notes built with Node.js, Express.js, and SQLite data
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `note_id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique identifier |
+| `user_id` | TEXT | NOT NULL | Auth0 user identifier |
 | `title` | TEXT | NOT NULL | Note title |
 | `content` | TEXT | NOT NULL | Note content |
 | `last_updated` | TEXT | - | ISO 8601 timestamp |
+
+> **Security**: Each note is associated with a `user_id` to ensure users can only access their own notes.
 
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
 - Node.js (v14 or higher)
 - npm
+- Auth0 account (free tier available)
+
+### 🔐 Auth0 Setup
+
+1. **Create Auth0 Account**: Sign up at [Auth0 Dashboard](https://manage.auth0.com/)
+2. **Create Application**: Choose "Single Page Application" type
+3. **Configure Google OAuth**: Enable Google social connection
+4. **Create API**: Set up an API with RS256 signing algorithm
+5. **Environment Variables**: Configure as shown below
+
+For detailed Auth0 setup instructions, see [AUTH0_SETUP.md](./AUTH0_SETUP.md)
+
+## 🚀 Quick Start (Using Scripts)
+
+The easiest way to get started is using the provided scripts:
+
+```bash
+# 1. Install all dependencies
+./scripts/install.sh
+
+# 2. Start the application
+./scripts/run.sh
+
+# 3. Stop the application (when done)
+./scripts/stop.sh
+
+# 4. Clean project (remove dependencies and build files)
+./scripts/clean.sh
+```
+
+## 🛠️ Manual Setup
 
 ### 1. Install Dependencies
 

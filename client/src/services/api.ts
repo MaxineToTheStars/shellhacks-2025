@@ -3,17 +3,36 @@ import { Note, CreateNoteRequest, UpdateNoteRequest, ApiResponse, ApiError } fro
 const API_BASE_URL = 'http://localhost:3000';
 
 class ApiService {
+  private getAccessToken: (() => Promise<string>) | null = null;
+
+  setAccessTokenProvider(getToken: () => Promise<string>) {
+    this.getAccessToken = getToken;
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add Authorization header if we have an access token provider
+    if (this.getAccessToken) {
+      try {
+        const token = await this.getAccessToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        console.error('Failed to get access token:', error);
+        throw new Error('Authentication failed');
+      }
+    }
+    
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       ...options,
     };
 
