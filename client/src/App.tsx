@@ -92,17 +92,25 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-taupe-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Notes App</h1>
-          <p className="text-gray-600">Manage your notes with ease</p>
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-3 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-bold text-sage-900">MindPath</h1>
+          </div>
+          <p className="text-lg text-sage-700 font-serif italic">Write your path to wellness</p>
+          <p className="text-sage-600 mt-2">Navigate your thoughts. Chart your growth.</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -110,12 +118,12 @@ function App() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-sm text-red-800 font-serif">{error}</p>
               </div>
               <div className="ml-auto pl-3">
                 <button
                   onClick={() => setError(null)}
-                  className="text-red-400 hover:text-red-600"
+                  className="text-red-400 hover:text-red-600 transition-colors"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -131,26 +139,32 @@ function App() {
 
         {/* Notes List Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Your Notes ({notes.length})
-          </h2>
+          <div className="journey-path pl-6">
+            <h2 className="text-2xl font-semibold text-sage-900">
+              Your Journey ({notes.length})
+            </h2>
+            <p className="text-sage-600 font-serif text-sm mt-1">Each entry is a step forward on your path</p>
+          </div>
           <button
             onClick={handleRefresh}
             className="btn-secondary"
             disabled={isLoading}
           >
-            Refresh
+            Refresh Path
           </button>
         </div>
 
         {/* Notes List */}
         {notes.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No notes</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new note.</p>
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-gradient-to-br from-sage-200 to-gold-200 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <svg className="w-8 h-8 text-sage-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-sage-900 mb-2">Begin your journey</h3>
+            <p className="text-sage-600 font-serif">Start charting your path to wellness by creating your first entry.</p>
+            <p className="text-sage-500 text-sm mt-2 italic">"Every journey begins with a single step"</p>
           </div>
         ) : (
           <div className="space-y-6">

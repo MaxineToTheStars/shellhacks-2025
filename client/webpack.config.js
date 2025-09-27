@@ -35,7 +35,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      title: 'Notes App',
+      title: 'MindPath - Write your path to wellness',
     }),
   ],
   devServer: {

@@ -29,8 +29,8 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to clean and install dependencies for a directory
-clean_and_install() {
+# Function to install dependencies for a directory
+install_dependencies() {
     local dir=$1
     local name=$2
     
@@ -39,22 +39,10 @@ clean_and_install() {
         return 1
     fi
     
-    print_status "Cleaning and installing dependencies for $name..."
+    print_status "Installing dependencies for $name..."
     cd "$dir" || return 1
     
-    # Remove node_modules and package-lock.json
-    if [ -d "node_modules" ]; then
-        print_status "Removing node_modules from $name..."
-        rm -rf node_modules
-    fi
-    
-    if [ -f "package-lock.json" ]; then
-        print_status "Removing package-lock.json from $name..."
-        rm -f package-lock.json
-    fi
-    
     # Install dependencies
-    print_status "Installing dependencies for $name..."
     if npm install; then
         print_success "Dependencies installed successfully for $name"
     else
@@ -133,8 +121,8 @@ kill_port() {
 
 # Main script
 main() {
-    print_status "🚀 Starting Notes App Setup and Launch Script"
-    echo "=================================================="
+    print_status "🚀 Starting MindPath App Setup and Launch Script"
+    echo "======================================================"
     
     # Check if we're in the right directory
     if [ ! -f "README.md" ] || [ ! -d "server" ] || [ ! -d "client" ]; then
@@ -183,21 +171,21 @@ main() {
     kill_port 3000 "server"
     kill_port 8080 "client"
     
-    # Clean and install dependencies
-    print_status "Setting up project dependencies..."
+    # Install dependencies
+    print_status "Installing project dependencies..."
     
-    if ! clean_and_install "database" "Database"; then
-        print_error "Failed to setup database dependencies"
+    if ! install_dependencies "database" "Database"; then
+        print_error "Failed to install database dependencies"
         exit 1
     fi
     
-    if ! clean_and_install "server" "Server"; then
-        print_error "Failed to setup server dependencies"
+    if ! install_dependencies "server" "Server"; then
+        print_error "Failed to install server dependencies"
         exit 1
     fi
     
-    if ! clean_and_install "client" "Client"; then
-        print_error "Failed to setup client dependencies"
+    if ! install_dependencies "client" "Client"; then
+        print_error "Failed to install client dependencies"
         exit 1
     fi
     
@@ -223,8 +211,8 @@ main() {
     fi
     
     echo ""
-    print_success "🎉 Notes App is now running!"
-    echo "=================================================="
+    print_success "🎉 MindPath App is now running!"
+    echo "======================================================"
     print_status "📊 Server Status:"
     print_status "   • API Server: http://localhost:3000"
     print_status "   • Health Check: http://localhost:3000/health"
@@ -237,9 +225,10 @@ main() {
     print_status "   • Server logs: logs/server.log"
     print_status "   • Client logs: logs/client.log"
     echo ""
-    print_status "🛑 To stop the services:"
-    print_status "   • Run: ./scripts/stop.sh"
-    print_status "   • Or manually kill the processes using the PIDs in logs/"
+    print_status "🛠️  Available Commands:"
+    print_status "   • Stop services: ./scripts/stop.sh"
+    print_status "   • Clean project: ./scripts/clean.sh"
+    print_status "   • Check status: ./scripts/status.sh"
     echo ""
     print_warning "Press Ctrl+C to exit this script (services will continue running)"
     

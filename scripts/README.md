@@ -6,20 +6,21 @@ This directory contains utility scripts for managing the Notes App project.
 
 ### 🚀 `start.sh` - Start All Services
 
-Completely sets up and starts the Notes App:
+Installs dependencies and starts the MindPath App:
 
 ```bash
 ./scripts/start.sh
 ```
 
 **What it does:**
-- ✅ Removes all `node_modules` and `package-lock.json` files
-- ✅ Installs fresh dependencies for database, server, and client
+- ✅ Installs dependencies for database, server, and client
 - ✅ Kills any existing processes on ports 3000 and 8080
 - ✅ Starts the API server on port 3000
 - ✅ Starts the React client on port 8080
 - ✅ Creates log files for monitoring
 - ✅ Provides real-time status updates
+
+**Note:** For a clean install, run `./scripts/clean.sh` first to remove existing dependencies.
 
 **Features:**
 - Colored output for better readability
@@ -46,6 +47,29 @@ Stops all running services:
 - ✅ Kills any remaining processes on ports 3000 and 8080
 - ✅ Cleans up PID files
 - ✅ Optionally removes log files
+
+### 🧹 `clean.sh` - Clean Project Directory
+
+Removes build artifacts and dependencies:
+
+```bash
+./scripts/clean.sh
+```
+
+**Options:**
+```bash
+./scripts/clean.sh --include-logs    # Also remove logs directory
+./scripts/clean.sh --include-vscode  # Also remove .vscode/settings.json
+./scripts/clean.sh --help            # Show help message
+```
+
+**What it removes:**
+- ✅ `node_modules` directories
+- ✅ `package-lock.json` files
+- ✅ `dist` and `build` directories
+- ✅ `coverage` directories
+- ✅ `.cache` directories
+- ✅ Temporary system files (.DS_Store, Thumbs.db)
 
 ### 📊 `status.sh` - Check Service Status
 
@@ -79,6 +103,7 @@ Check the status of all services:
 ### Development Workflow
 ```bash
 # Clean start (removes all dependencies and reinstalls)
+./scripts/clean.sh
 ./scripts/start.sh
 
 # Check if services are running
@@ -96,7 +121,8 @@ Check the status of all services:
 # Force stop everything
 ./scripts/stop.sh
 
-# Clean restart
+# Clean and restart
+./scripts/clean.sh
 ./scripts/start.sh
 ```
 

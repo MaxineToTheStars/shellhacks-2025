@@ -1,25 +1,28 @@
-# Notes App - React Client
+# MindPath - React Client
 
-A modern React TypeScript application for managing notes with a beautiful TailwindCSS interface.
+A modern React TypeScript application for personal wellness journey management with a beautiful, nature-inspired TailwindCSS interface.
 
 ## Features
 
-- ✅ Create new notes
-- ✅ View all notes
-- ✅ Edit existing notes
-- ✅ Delete notes
+- ✅ Create new journal entries
+- ✅ View your wellness journey
+- ✅ Edit and refine your thoughts
+- ✅ Remove outdated entries
 - ✅ Real-time updates
 - ✅ Responsive design
 - ✅ TypeScript for type safety
-- ✅ TailwindCSS for styling
+- ✅ MindPath brand design system
+- ✅ Nature-inspired color palette
+- ✅ Encouraging, empathetic messaging
 
 ## Tech Stack
 
 - **React 18** - UI library
 - **TypeScript** - Type safety
-- **TailwindCSS** - Styling
+- **TailwindCSS** - Styling with MindPath design system
 - **Webpack 5** - Bundling
 - **PostCSS** - CSS processing
+- **Google Fonts** - Merriweather (serif) & Montserrat (sans-serif)
 
 ## Prerequisites
 
@@ -88,11 +91,11 @@ src/
 
 ## Usage
 
-1. **Create a Note**: Fill in the title and content fields, then click "Create Note"
-2. **View Notes**: All notes are displayed in a list with the most recent first
-3. **Edit a Note**: Click the "Edit" button on any note to modify it
-4. **Delete a Note**: Click the "Delete" button and confirm to remove a note
-5. **Refresh**: Use the "Refresh" button to reload all notes from the server
+1. **Chart Your Next Step**: Fill in the entry title and your thoughts, then click "Add to Your Journey"
+2. **View Your Journey**: All entries are displayed in a timeline with the most recent first
+3. **Refine Your Path**: Click the "Refine" button on any entry to modify it
+4. **Remove an Entry**: Click the "Remove" button and confirm to remove an entry
+5. **Refresh Path**: Use the "Refresh Path" button to reload all entries from the server
 
 ## Error Handling
 
