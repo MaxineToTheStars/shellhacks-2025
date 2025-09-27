@@ -1,11 +1,27 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
 const { dbOperations } = require('../database/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration
+const corsOptions = {
+    origin: [
+        'http://localhost:8080',  // React dev server
+        'http://localhost:3000',  // Server itself
+        'http://127.0.0.1:8080',  // Alternative localhost
+        'http://127.0.0.1:3000'   // Alternative localhost
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    optionsSuccessStatus: 200
+};
+
 // Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -13,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
-        message: 'Note Management API is running',
+        message: 'MindPath API is running',
         timestamp: new Date().toISOString()
     });
 });
@@ -269,9 +285,10 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Note Management API server is running on port ${PORT}`);
+    console.log(`MindPath API server is running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
     console.log(`API endpoints: http://localhost:${PORT}/api/notes`);
+    console.log(`CORS enabled for: http://localhost:8080`);
 });
 
 module.exports = app;
