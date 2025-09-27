@@ -7,9 +7,20 @@ const cors = require('cors');
 const { expressjwt: jwt } = require('express-jwt');
 const jwks = require('jwks-rsa');
 const { dbOperations } = require('../database/database');
+const GeminiService = require('./geminiService');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8081;
+
+// Initialize Gemini service
+let geminiService;
+try {
+    geminiService = new GeminiService();
+    console.log('Gemini service initialized successfully');
+} catch (error) {
+    console.warn('Gemini service initialization failed:', error.message);
+    console.warn('Note analysis features will be disabled');
+}
 
 // Auth0 Configuration
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'your-auth0-domain.auth0.com';
@@ -40,9 +51,9 @@ const jwtCheck = jwt({
 const corsOptions = {
     origin: [
         'http://localhost:8080',  // React dev server
-        'http://localhost:3000',  // Server itself
+        'http://localhost:8081',  // Server itself
         'http://127.0.0.1:8080',  // Alternative localhost
-        'http://127.0.0.1:3000'   // Alternative localhost
+        'http://127.0.0.1:8081'   // Alternative localhost
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -88,9 +99,39 @@ app.post('/api/notes', jwtCheck, async (req, res) => {
         }
 
         const newNote = await dbOperations.createNote(userId, title, content);
+
+        // Check if this is the 10th note and trigger automatic analysis
+        const allNotes = await dbOperations.getAllNotes(userId);
+        let shouldTriggerAnalysis = false;
+
+        if (allNotes.length === 10 && geminiService) {
+            shouldTriggerAnalysis = true;
+            // Trigger analysis in the background (don't wait for it)
+            setImmediate(async () => {
+                try {
+                    const notes = await dbOperations.getLatestNotesForAnalysis(userId);
+                    const analysisResult = await geminiService.analyzeNotesAndGenerateResources(notes);
+
+                    if (analysisResult.success) {
+                        await dbOperations.createAnalysisLog(
+                            userId,
+                            'mental_health_analysis',
+                            JSON.stringify(notes.map(note => ({ id: note.note_id, title: note.title }))),
+                            JSON.stringify(analysisResult.data),
+                            'automatic'
+                        );
+                        console.log(`Automatic analysis completed for user ${userId}`);
+                    }
+                } catch (error) {
+                    console.error('Error in automatic analysis:', error);
+                }
+            });
+        }
+
         res.status(201).json({
             message: 'Note created successfully',
-            note: newNote
+            note: newNote,
+            shouldTriggerAnalysis: shouldTriggerAnalysis
         });
     } catch (error) {
         console.error('Error creating note:', error);
@@ -302,6 +343,133 @@ app.delete('/api/notes/:id', jwtCheck, async (req, res) => {
     }
 });
 
+// POST /api/analyze-notes - Analyze notes and generate mental health resources
+app.post('/api/analyze-notes', jwtCheck, async (req, res) => {
+    try {
+        if (!geminiService) {
+            return res.status(503).json({
+                error: 'Service Unavailable',
+                message: 'Gemini analysis service is not available. Please check API key configuration.'
+            });
+        }
+
+        const userId = req.user.sub;
+        const { triggerType = 'manual' } = req.body;
+
+        // Get the latest notes for analysis
+        const notes = await dbOperations.getLatestNotesForAnalysis(userId);
+
+        if (notes.length === 0) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'No notes available for analysis'
+            });
+        }
+
+        // Analyze notes with Gemini
+        const analysisResult = await geminiService.analyzeNotesAndGenerateResources(notes);
+
+        if (!analysisResult.success) {
+            return res.status(500).json({
+                error: 'Analysis Failed',
+                message: 'Failed to analyze notes: ' + analysisResult.error
+            });
+        }
+
+        // Store the analysis log
+        const analysisLog = await dbOperations.createAnalysisLog(
+            userId,
+            'mental_health_analysis',
+            JSON.stringify(notes.map(note => ({ id: note.note_id, title: note.title }))),
+            JSON.stringify(analysisResult.data),
+            triggerType
+        );
+
+        res.json({
+            message: 'Notes analyzed successfully',
+            analysis: analysisResult.data,
+            logId: analysisLog.log_id,
+            notesAnalyzed: notes.length
+        });
+    } catch (error) {
+        console.error('Error analyzing notes:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to analyze notes'
+        });
+    }
+});
+
+// GET /api/analysis-logs - Get all analysis logs for the user
+app.get('/api/analysis-logs', jwtCheck, async (req, res) => {
+    try {
+        const userId = req.user.sub;
+        const logs = await dbOperations.getAllAnalysisLogs(userId);
+
+        // Parse the JSON strings back to objects for easier frontend consumption
+        const parsedLogs = logs.map(log => ({
+            ...log,
+            notes_analyzed: JSON.parse(log.notes_analyzed),
+            generated_resources: JSON.parse(log.generated_resources)
+        }));
+
+        res.json({
+            message: 'Analysis logs retrieved successfully',
+            count: parsedLogs.length,
+            logs: parsedLogs
+        });
+    } catch (error) {
+        console.error('Error retrieving analysis logs:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to retrieve analysis logs'
+        });
+    }
+});
+
+// GET /api/analysis-logs/:id - Get a specific analysis log
+app.get('/api/analysis-logs/:id', jwtCheck, async (req, res) => {
+    try {
+        const logId = parseInt(req.params.id);
+        const userId = req.user.sub;
+
+        if (isNaN(logId) || logId <= 0) {
+            return res.status(400).json({
+                error: 'Bad Request',
+                message: 'Invalid log ID. Must be a positive integer.'
+            });
+        }
+
+        const logs = await dbOperations.getAllAnalysisLogs(userId);
+        const log = logs.find(l => l.log_id === logId);
+
+        if (!log) {
+            return res.status(404).json({
+                error: 'Not Found',
+                message: 'Analysis log not found'
+            });
+        }
+
+        // Parse the JSON strings back to objects
+        const parsedLog = {
+            ...log,
+            notes_analyzed: JSON.parse(log.notes_analyzed),
+            generated_resources: JSON.parse(log.generated_resources)
+        };
+
+        res.json({
+            message: 'Analysis log retrieved successfully',
+            log: parsedLog
+        });
+    } catch (error) {
+        console.error('Error retrieving analysis log:', error);
+        res.status(500).json({
+            error: 'Internal Server Error',
+            message: 'Failed to retrieve analysis log'
+        });
+    }
+});
+
 // 404 handler for undefined routes
 app.use((req, res) => {
     res.status(404).json({
@@ -319,12 +487,45 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`MindPath API server is running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`API endpoints: http://localhost:${PORT}/api/notes`);
-    console.log(`CORS enabled for: http://localhost:8080`);
+// Start server with better error handling
+const server = app.listen(PORT, () => {
+    console.log(`✅ MindPath API server is running on port ${PORT}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`📡 API endpoints: http://localhost:${PORT}/api/notes`);
+    console.log(`🌐 CORS enabled for: http://localhost:8080`);
+    console.log(`🤖 Gemini integration: ${geminiService ? 'Enabled' : 'Disabled (check API key)'}`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use.`);
+        console.error(`💡 Try these solutions:`);
+        console.error(`   1. Kill existing processes: pkill -f "node.*server.js"`);
+        console.error(`   2. Use a different port: PORT=3001 npm start`);
+        console.error(`   3. Wait a few seconds and try again`);
+        console.error(`   4. Use the startup script: ./scripts/start-server.sh`);
+    } else {
+        console.error('❌ Server error:', error);
+    }
+    process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received, shutting down gracefully');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
 });
 
 module.exports = app;

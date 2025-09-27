@@ -1,6 +1,6 @@
-import { Note, CreateNoteRequest, UpdateNoteRequest, ApiResponse, ApiError } from '../types';
+import { Note, CreateNoteRequest, UpdateNoteRequest, ApiResponse, ApiError, AnalysisResponse, AnalysisLogsResponse } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:8081';
 
 class ApiService {
   private getAccessToken: (() => Promise<string>) | null = null;
@@ -14,7 +14,7 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -30,7 +30,7 @@ class ApiService {
         throw new Error('Authentication failed');
       }
     }
-    
+
     const config: RequestInit = {
       headers,
       ...options,
@@ -97,6 +97,24 @@ class ApiService {
     return this.request(`/api/notes/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Analyze notes and generate mental health resources
+  async analyzeNotes(triggerType: 'manual' | 'automatic' = 'manual'): Promise<AnalysisResponse> {
+    return this.request('/api/analyze-notes', {
+      method: 'POST',
+      body: JSON.stringify({ triggerType }),
+    });
+  }
+
+  // Get all analysis logs
+  async getAnalysisLogs(): Promise<AnalysisLogsResponse> {
+    return this.request('/api/analysis-logs');
+  }
+
+  // Get a specific analysis log by ID
+  async getAnalysisLogById(id: number): Promise<{ message: string; log: any }> {
+    return this.request(`/api/analysis-logs/${id}`);
   }
 }
 

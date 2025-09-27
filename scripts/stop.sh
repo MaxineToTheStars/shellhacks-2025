@@ -15,38 +15,17 @@ print_success() {
 
 print_status "🛑 Stopping MindPath App..."
 
-# Stop server
-if [ -f "logs/server.pid" ]; then
-    SERVER_PID=$(cat logs/server.pid)
-    if kill -0 $SERVER_PID 2>/dev/null; then
-        print_status "Stopping server (PID: $SERVER_PID)..."
-        kill $SERVER_PID 2>/dev/null
-        sleep 2
-        if kill -0 $SERVER_PID 2>/dev/null; then
-            kill -9 $SERVER_PID 2>/dev/null
-        fi
-        print_success "Server stopped"
-    fi
-    rm -f logs/server.pid
-fi
+# Kill all MindPath processes
+print_status "Stopping all MindPath processes..."
+pkill -f "node.*server.js" 2>/dev/null || true
+pkill -f "webpack.*serve" 2>/dev/null || true
+pkill -f "npm.*start" 2>/dev/null || true
+pkill -f "npm.*dev" 2>/dev/null || true
 
-# Stop client
-if [ -f "logs/client.pid" ]; then
-    CLIENT_PID=$(cat logs/client.pid)
-    if kill -0 $CLIENT_PID 2>/dev/null; then
-        print_status "Stopping client (PID: $CLIENT_PID)..."
-        kill $CLIENT_PID 2>/dev/null
-        sleep 2
-        if kill -0 $CLIENT_PID 2>/dev/null; then
-            kill -9 $CLIENT_PID 2>/dev/null
-        fi
-        print_success "Client stopped"
-    fi
-    rm -f logs/client.pid
+# Kill processes on our ports
+if command -v netstat >/dev/null 2>&1; then
+    netstat -tlnp 2>/dev/null | grep :8080 | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
+    netstat -tlnp 2>/dev/null | grep :8081 | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
 fi
-
-# Kill any remaining processes on our ports (portable alternative to lsof)
-netstat -tlnp 2>/dev/null | grep :3000 | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
-netstat -tlnp 2>/dev/null | grep :8080 | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 2>/dev/null || true
 
 print_success "🎉 All services stopped!"

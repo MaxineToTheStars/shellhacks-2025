@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Note as NoteType } from './types';
+import { Note as NoteType, AnalysisResult } from './types';
 import { apiService } from './services/api';
 import { NoteForm } from './components/NoteForm';
 import { Note } from './components/Note';
+import { AnalysisModal } from './components/AnalysisModal';
+import { AnalysisLogView } from './components/AnalysisLogView';
 import LoginPage from './components/LoginPage';
 import UserProfile from './components/UserProfile';
 
@@ -13,6 +15,13 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Analysis-related state
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisNotesCount, setAnalysisNotesCount] = useState(0);
+  const [isLogViewOpen, setIsLogViewOpen] = useState(false);
 
   // Set up API service with access token provider
   useEffect(() => {
@@ -43,6 +52,14 @@ function App() {
       const response = await apiService.createNote({ title, content });
       if (response.note) {
         setNotes(prevNotes => [response.note!, ...prevNotes]);
+        
+        // Check if this should trigger automatic analysis
+        if (response.shouldTriggerAnalysis) {
+          // Show a notification that analysis is being performed
+          setTimeout(() => {
+            handleAnalyzeNotes('automatic');
+          }, 2000); // Wait 2 seconds to show the analysis modal
+        }
       }
     } catch (error) {
       console.error('Error creating note:', error);
@@ -85,6 +102,38 @@ function App() {
 
   const handleRefresh = () => {
     loadNotes();
+  };
+
+  const handleAnalyzeNotes = async (triggerType: 'manual' | 'automatic' = 'manual') => {
+    try {
+      setIsAnalyzing(true);
+      setError(null);
+      setIsAnalysisModalOpen(true);
+      
+      const response = await apiService.analyzeNotes(triggerType);
+      setCurrentAnalysis(response.analysis);
+      setAnalysisNotesCount(response.notesAnalyzed);
+    } catch (error) {
+      console.error('Error analyzing notes:', error);
+      setError('Failed to analyze notes. Please try again.');
+      setIsAnalysisModalOpen(false);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleCloseAnalysisModal = () => {
+    setIsAnalysisModalOpen(false);
+    setCurrentAnalysis(null);
+    setAnalysisNotesCount(0);
+  };
+
+  const handleOpenLogView = () => {
+    setIsLogViewOpen(true);
+  };
+
+  const handleCloseLogView = () => {
+    setIsLogViewOpen(false);
   };
 
   // Show loading state while Auth0 is initializing
@@ -134,7 +183,18 @@ function App() {
               <p className="text-lg text-sage-700 font-serif italic">Write your path to wellness</p>
               <p className="text-sage-600 mt-2">Navigate your thoughts. Chart your growth.</p>
             </div>
-            <UserProfile />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleOpenLogView}
+                className="btn-secondary flex items-center text-sm"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Logs
+              </button>
+              <UserProfile />
+            </div>
           </div>
         </div>
 
@@ -175,13 +235,36 @@ function App() {
             </h2>
             <p className="text-sage-600 font-serif text-sm mt-1">Each entry is a step forward on your path</p>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="btn-secondary"
-            disabled={isLoading}
-          >
-            Refresh Path
-          </button>
+          <div className="flex gap-3">
+            {notes.length >= 3 && (
+              <button
+                onClick={() => handleAnalyzeNotes('manual')}
+                className="btn-primary flex items-center"
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Analyze Notes
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              onClick={handleRefresh}
+              className="btn-secondary"
+              disabled={isLoading}
+            >
+              Refresh Path
+            </button>
+          </div>
         </div>
 
         {/* Notes List */}
@@ -208,6 +291,21 @@ function App() {
             ))}
           </div>
         )}
+
+        {/* Analysis Modal */}
+        <AnalysisModal
+          isOpen={isAnalysisModalOpen}
+          onClose={handleCloseAnalysisModal}
+          analysis={currentAnalysis}
+          isLoading={isAnalyzing}
+          notesAnalyzed={analysisNotesCount}
+        />
+
+        {/* Analysis Log View */}
+        <AnalysisLogView
+          isOpen={isLogViewOpen}
+          onClose={handleCloseLogView}
+        />
       </div>
     </div>
   );
