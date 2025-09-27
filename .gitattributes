@@ -1,0 +1,20 @@
+# Auto-detect text files and ensure LF line endings in the repository
+* text=auto
+
+# Denote binary files that should not be normalized or diffed
+# Add any other binary files (e.g., specific image types, fonts) as needed
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.eot binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+
+# Ensure any Windows-specific scripts use CRLF if needed for execution
+# You may want to omit these if you don't use them or prefer LF universally.
+*.bat text eol=crlf
+*.cmd text eol=crlf
