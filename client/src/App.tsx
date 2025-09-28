@@ -1,5 +1,18 @@
+/**
+ * MindPath Main Application Component
+ * 
+ * This is the root component of the MindPath React application. It manages
+ * user authentication, note management, and AI analysis features. The app
+ * provides a comprehensive personal wellness platform with secure note-taking
+ * and AI-powered mental health insights.
+ * 
+ * @author MindPath Development Team
+ * @version 1.0.0
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { Menu, FileText, AlertCircle, CheckCircle, Plus, Brain } from 'lucide-react';
 import { Note as NoteType, AnalysisResult } from './types';
 import { apiService } from './services/api';
 import { NoteForm } from './components/NoteForm';
@@ -9,21 +22,40 @@ import { AnalysisLogView } from './components/AnalysisLogView';
 import LoginPage from './components/LoginPage';
 import UserProfile from './components/UserProfile';
 
+/**
+ * Main Application Component
+ * 
+ * Manages the overall application state including:
+ * - User authentication status
+ * - Note management (CRUD operations)
+ * - AI analysis features
+ * - Error handling and loading states
+ * 
+ * @returns {JSX.Element} The main application interface
+ */
 function App() {
+  // Auth0 authentication hook
   const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0();
+  
+  // Core application state
   const [notes, setNotes] = useState<NoteType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Analysis-related state
+  // AI analysis feature state
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisNotesCount, setAnalysisNotesCount] = useState(0);
   const [isLogViewOpen, setIsLogViewOpen] = useState(false);
 
-  // Set up API service with access token provider
+  /**
+   * Initialize API Service and Load Notes
+   * 
+   * Sets up the API service with the Auth0 access token provider and
+   * loads the user's notes when authentication is complete.
+   */
   useEffect(() => {
     if (isAuthenticated) {
       apiService.setAccessTokenProvider(getAccessTokenSilently);
@@ -31,6 +63,12 @@ function App() {
     }
   }, [isAuthenticated, getAccessTokenSilently]);
 
+  /**
+   * Load User Notes
+   * 
+   * Fetches all notes for the authenticated user from the API.
+   * Handles loading states and error conditions gracefully.
+   */
   const loadNotes = async () => {
     try {
       setIsLoading(true);
@@ -38,31 +76,42 @@ function App() {
       const response = await apiService.getAllNotes();
       setNotes(response.notes || []);
     } catch (error) {
-      console.error('Error loading notes:', error);
+      console.error('❌ Error loading notes:', error);
       setError('Failed to load notes. Please make sure the server is running.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Create New Note
+   * 
+   * Creates a new note and adds it to the local state. If this is the user's
+   * 10th note, automatically triggers AI analysis after a short delay.
+   * 
+   * @param {string} title - Note title
+   * @param {string} content - Note content
+   * @throws {Error} If note creation fails
+   */
   const handleCreateNote = async (title: string, content: string) => {
     try {
       setIsCreating(true);
       setError(null);
       const response = await apiService.createNote({ title, content });
       if (response.note) {
+        // Add new note to the beginning of the list (most recent first)
         setNotes(prevNotes => [response.note!, ...prevNotes]);
         
-        // Check if this should trigger automatic analysis
+        // Check if this should trigger automatic analysis (10th note)
         if (response.shouldTriggerAnalysis) {
-          // Show a notification that analysis is being performed
+          // Show analysis modal after a short delay for better UX
           setTimeout(() => {
             handleAnalyzeNotes('automatic');
-          }, 2000); // Wait 2 seconds to show the analysis modal
+          }, 2000);
         }
       }
     } catch (error) {
-      console.error('Error creating note:', error);
+      console.error('❌ Error creating note:', error);
       setError('Failed to create note');
       throw error;
     } finally {
@@ -70,11 +119,22 @@ function App() {
     }
   };
 
+  /**
+   * Update Existing Note
+   * 
+   * Updates a note's title and content, then refreshes the local state.
+   * 
+   * @param {number} id - Note ID to update
+   * @param {string} title - New note title
+   * @param {string} content - New note content
+   * @throws {Error} If note update fails
+   */
   const handleUpdateNote = async (id: number, title: string, content: string) => {
     try {
       setError(null);
       const response = await apiService.updateNote(id, { title, content });
       if (response.note) {
+        // Update the note in the local state
         setNotes(prevNotes =>
           prevNotes.map(note =>
             note.note_id === id ? response.note! : note
@@ -82,16 +142,25 @@ function App() {
         );
       }
     } catch (error) {
-      console.error('Error updating note:', error);
+      console.error('❌ Error updating note:', error);
       setError('Failed to update note');
       throw error;
     }
   };
 
+  /**
+   * Delete Note
+   * 
+   * Deletes a note from the database and removes it from local state.
+   * 
+   * @param {number} id - Note ID to delete
+   * @throws {Error} If note deletion fails
+   */
   const handleDeleteNote = async (id: number) => {
     try {
       setError(null);
       await apiService.deleteNote(id);
+      // Remove the note from local state
       setNotes(prevNotes => prevNotes.filter(note => note.note_id !== id));
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -100,10 +169,23 @@ function App() {
     }
   };
 
+  /**
+   * Refresh Notes
+   * 
+   * Reloads all notes from the server to ensure data is up-to-date.
+   */
   const handleRefresh = () => {
     loadNotes();
   };
 
+  /**
+   * Analyze Notes with AI
+   * 
+   * Triggers AI-powered analysis of user notes to generate mental health
+   * insights and recommendations. Opens the analysis modal to display results.
+   * 
+   * @param {'manual' | 'automatic'} triggerType - How the analysis was triggered
+   */
   const handleAnalyzeNotes = async (triggerType: 'manual' | 'automatic' = 'manual') => {
     try {
       setIsAnalyzing(true);
@@ -114,7 +196,7 @@ function App() {
       setCurrentAnalysis(response.analysis);
       setAnalysisNotesCount(response.notesAnalyzed);
     } catch (error) {
-      console.error('Error analyzing notes:', error);
+      console.error('❌ Error analyzing notes:', error);
       setError('Failed to analyze notes. Please try again.');
       setIsAnalysisModalOpen(false);
     } finally {
@@ -122,16 +204,31 @@ function App() {
     }
   };
 
+  /**
+   * Close Analysis Modal
+   * 
+   * Closes the analysis modal and clears the current analysis data.
+   */
   const handleCloseAnalysisModal = () => {
     setIsAnalysisModalOpen(false);
     setCurrentAnalysis(null);
     setAnalysisNotesCount(0);
   };
 
+  /**
+   * Open Analysis Log View
+   * 
+   * Opens the modal to view past analysis results and history.
+   */
   const handleOpenLogView = () => {
     setIsLogViewOpen(true);
   };
 
+  /**
+   * Close Analysis Log View
+   * 
+   * Closes the analysis log modal.
+   */
   const handleCloseLogView = () => {
     setIsLogViewOpen(false);
   };
@@ -174,9 +271,7 @@ function App() {
             <div className="text-center flex-1">
               <div className="inline-flex items-center mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-3 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
+                  <Menu className="w-5 h-5 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold text-sage-900">MindPath</h1>
               </div>
@@ -188,9 +283,7 @@ function App() {
                 onClick={handleOpenLogView}
                 className="btn-secondary flex items-center text-sm"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FileText className="w-4 h-4 mr-2" />
                 View Logs
               </button>
               <UserProfile />
@@ -203,9 +296,7 @@ function App() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
+                <AlertCircle className="h-5 w-5 text-red-400" />
               </div>
               <div className="ml-3">
                 <p className="text-sm text-red-800 font-serif">{error}</p>
@@ -215,9 +306,7 @@ function App() {
                   onClick={() => setError(null)}
                   className="text-red-400 hover:text-red-600 transition-colors"
                 >
-                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
+                  <CheckCircle className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -249,9 +338,7 @@ function App() {
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
+                    <Brain className="w-4 h-4 mr-2" />
                     Analyze Notes
                   </>
                 )}
@@ -271,9 +358,7 @@ function App() {
         {notes.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gradient-to-br from-sage-200 to-gold-200 rounded-full mx-auto mb-6 flex items-center justify-center">
-              <svg className="w-8 h-8 text-sage-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              <FileText className="w-8 h-8 text-sage-600" />
             </div>
             <h3 className="text-lg font-medium text-sage-900 mb-2">Begin your journey</h3>
             <p className="text-sage-600 font-serif">Start charting your path to wellness by creating your first entry.</p>

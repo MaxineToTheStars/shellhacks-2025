@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
+import { Menu } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { loginWithRedirect, isLoading } = useAuth0();
@@ -29,9 +30,7 @@ const LoginPage: React.FC = () => {
         <div className="text-center">
           <div className="inline-flex items-center mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-4 flex items-center justify-center">
-              <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
+              <Menu className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-4xl font-bold text-sage-900">MindPath</h1>
           </div>

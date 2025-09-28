@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 
 interface NoteFormProps {
   onSubmit: (title: string, content: string) => Promise<void>;
@@ -31,9 +32,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({ onSubmit, isLoading = false 
     <div className="card p-8 mb-8 mindpath-accent">
       <div className="flex items-center mb-6">
         <div className="w-6 h-6 bg-gradient-to-br from-sage-400 to-gold-300 rounded-full mr-3 flex items-center justify-center">
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-          </svg>
+          <Plus className="w-4 h-4 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-sage-900">Chart Your Next Step</h2>
       </div>
