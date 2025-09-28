@@ -128,25 +128,12 @@ cd client
 npm run dev
 ```
 
-### Production Mode
-
-Build and start the application for production:
-```bash
-# Build the client
-cd client
-npm run build
-
-# Start the server
-cd ../server
-npm start
-```
-
 ## Verification
 
 ### Health Check
 Verify the server is running by accessing the health endpoint:
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:8081/health
 ```
 
 Expected response:

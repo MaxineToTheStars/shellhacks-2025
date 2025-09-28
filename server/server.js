@@ -1,72 +1,132 @@
-// Load environment variables
+/**
+ * MindPath API Server
+ * 
+ * This is the main Express.js server that provides RESTful API endpoints
+ * for the MindPath personal wellness application. It handles authentication,
+ * note management, and AI-powered analysis features.
+ * 
+ * @author MindPath Development Team
+ * @version 1.0.0
+ */
+
+// Load environment variables from .env file
 require('dotenv').config();
 
+// Core Express.js and middleware imports
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+
+// Authentication middleware for JWT token validation
 const { expressjwt: jwt } = require('express-jwt');
 const jwks = require('jwks-rsa');
+
+// Local service imports
 const { dbOperations } = require('../database/database');
 const GeminiService = require('./geminiService');
 
+// Initialize Express application
 const app = express();
+
+// Server configuration - defaults to port 8081 for development
 const PORT = process.env.PORT || 8081;
 
-// Initialize Gemini service
+/**
+ * Initialize Gemini AI Service
+ * 
+ * The Gemini service provides AI-powered analysis of user notes to generate
+ * mental health insights and recommendations. If initialization fails,
+ * the application continues to function without AI features.
+ */
 let geminiService;
 try {
     geminiService = new GeminiService();
-    console.log('Gemini service initialized successfully');
+    console.log('✅ Gemini service initialized successfully');
 } catch (error) {
-    console.warn('Gemini service initialization failed:', error.message);
-    console.warn('Note analysis features will be disabled');
+    console.warn('⚠️  Gemini service initialization failed:', error.message);
+    console.warn('📝 Note analysis features will be disabled');
 }
 
-// Auth0 Configuration
+/**
+ * Auth0 Authentication Configuration
+ * 
+ * These environment variables configure the JWT authentication system
+ * that validates user tokens from Auth0.
+ */
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'your-auth0-domain.auth0.com';
 const AUTH0_AUDIENCE = process.env.AUTH0_AUDIENCE || 'your-auth0-api-identifier';
 
-// Debug: Log Auth0 configuration (remove in production)
-console.log('Auth0 Server Config:', {
+// Debug logging for Auth0 configuration (remove in production)
+console.log('🔐 Auth0 Server Config:', {
   domain: AUTH0_DOMAIN,
   audience: AUTH0_AUDIENCE,
   hasEnvFile: !!process.env.AUTH0_DOMAIN
 });
 
-// JWT middleware configuration
+/**
+ * JWT Authentication Middleware Configuration
+ * 
+ * This middleware validates JWT tokens from Auth0 by:
+ * - Fetching public keys from Auth0's JWKS endpoint
+ * - Verifying token signature using RS256 algorithm
+ * - Checking token audience and issuer
+ * - Adding user information to request object
+ */
 const jwtCheck = jwt({
     secret: jwks.expressJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
+        cache: true,                    // Cache JWKS keys for performance
+        rateLimit: true,                // Rate limit JWKS requests
+        jwksRequestsPerMinute: 5,       // Max 5 requests per minute
         jwksUri: `https://${AUTH0_DOMAIN}/.well-known/jwks.json`
     }),
-    audience: AUTH0_AUDIENCE,
-    issuer: `https://${AUTH0_DOMAIN}/`,
-    algorithms: ['RS256'],
-    requestProperty: 'user'
+    audience: AUTH0_AUDIENCE,           // Expected audience in token
+    issuer: `https://${AUTH0_DOMAIN}/`, // Expected token issuer
+    algorithms: ['RS256'],              // Allowed signing algorithm
+    requestProperty: 'user'             // Add user info to req.user
 });
 
-// CORS configuration
+/**
+ * CORS (Cross-Origin Resource Sharing) Configuration
+ * 
+ * Allows the React development server to make requests to this API server.
+ * Configured for local development with both localhost and 127.0.0.1.
+ */
 const corsOptions = {
     origin: [
-        'http://localhost:8080',  // React dev server
-        'http://localhost:8081',  // Server itself
-        'http://127.0.0.1:8080',  // Alternative localhost
-        'http://127.0.0.1:8081'   // Alternative localhost
+        'http://localhost:8080',  // React development server
+        'http://localhost:8081',  // API server itself
+        'http://127.0.0.1:8080',  // Alternative localhost format
+        'http://127.0.0.1:8081'   // Alternative localhost format
     ],
-    credentials: true,
+    credentials: true,                    // Allow cookies and auth headers
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200            // Legacy browser support
 };
 
-// Middleware
+/**
+ * Express Middleware Configuration
+ * 
+ * These middleware functions are applied to all requests in order:
+ * 1. CORS - Handle cross-origin requests
+ * 2. JSON parsing - Parse JSON request bodies
+ * 3. URL encoding - Parse form-encoded request bodies
+ */
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+/**
+ * Health Check Endpoint
+ * 
+ * GET /health
+ * 
+ * Provides a simple health check to verify the API server is running.
+ * Used by monitoring systems and deployment scripts.
+ * 
+ * @route GET /health
+ * @returns {Object} Server status and timestamp
+ */
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -75,15 +135,36 @@ app.get('/health', (req, res) => {
     });
 });
 
-// API Routes
+/**
+ * =============================================================================
+ * API ROUTES
+ * =============================================================================
+ * 
+ * All API routes below require JWT authentication via the jwtCheck middleware.
+ * User information is available in req.user.sub (Auth0 user ID).
+ */
 
-// POST /api/notes - Create a new note
+/**
+ * Create New Note
+ * 
+ * POST /api/notes
+ * 
+ * Creates a new personal note for the authenticated user. Automatically triggers
+ * AI analysis when the user reaches their 10th note.
+ * 
+ * @route POST /api/notes
+ * @middleware jwtCheck - Requires valid JWT token
+ * @param {string} title - Note title (required)
+ * @param {string} content - Note content (required)
+ * @returns {Object} Created note object with analysis trigger status
+ */
 app.post('/api/notes', jwtCheck, async (req, res) => {
     try {
+        // Extract note data from request body
         const { title, content } = req.body;
-        const userId = req.user.sub; // Auth0 user ID
+        const userId = req.user.sub; // Auth0 user ID from JWT token
 
-        // Validation
+        // Input validation - ensure required fields are present
         if (!title || !content) {
             return res.status(400).json({
                 error: 'Bad Request',
@@ -91,6 +172,7 @@ app.post('/api/notes', jwtCheck, async (req, res) => {
             });
         }
 
+        // Input validation - ensure fields are strings
         if (typeof title !== 'string' || typeof content !== 'string') {
             return res.status(400).json({
                 error: 'Bad Request',
@@ -98,21 +180,28 @@ app.post('/api/notes', jwtCheck, async (req, res) => {
             });
         }
 
+        // Create the note in the database
         const newNote = await dbOperations.createNote(userId, title, content);
 
         // Check if this is the 10th note and trigger automatic analysis
         const allNotes = await dbOperations.getAllNotes(userId);
         let shouldTriggerAnalysis = false;
 
+        // Trigger automatic analysis on the 10th note (if Gemini service is available)
         if (allNotes.length === 10 && geminiService) {
             shouldTriggerAnalysis = true;
-            // Trigger analysis in the background (don't wait for it)
+            
+            // Run analysis in background to avoid blocking the response
             setImmediate(async () => {
                 try {
+                    // Get latest notes for analysis
                     const notes = await dbOperations.getLatestNotesForAnalysis(userId);
+                    
+                    // Generate AI analysis and resources
                     const analysisResult = await geminiService.analyzeNotesAndGenerateResources(notes);
 
                     if (analysisResult.success) {
+                        // Store analysis results in database
                         await dbOperations.createAnalysisLog(
                             userId,
                             'mental_health_analysis',
@@ -120,21 +209,22 @@ app.post('/api/notes', jwtCheck, async (req, res) => {
                             JSON.stringify(analysisResult.data),
                             'automatic'
                         );
-                        console.log(`Automatic analysis completed for user ${userId}`);
+                        console.log(`✅ Automatic analysis completed for user ${userId}`);
                     }
                 } catch (error) {
-                    console.error('Error in automatic analysis:', error);
+                    console.error('❌ Error in automatic analysis:', error);
                 }
             });
         }
 
+        // Return success response with created note
         res.status(201).json({
             message: 'Note created successfully',
             note: newNote,
             shouldTriggerAnalysis: shouldTriggerAnalysis
         });
     } catch (error) {
-        console.error('Error creating note:', error);
+        console.error('❌ Error creating note:', error);
         res.status(500).json({
             error: 'Internal Server Error',
             message: 'Failed to create note'
@@ -142,18 +232,31 @@ app.post('/api/notes', jwtCheck, async (req, res) => {
     }
 });
 
-// GET /api/notes - Get all notes for authenticated user
+/**
+ * Get All Notes
+ * 
+ * GET /api/notes
+ * 
+ * Retrieves all notes for the authenticated user, ordered by most recent first.
+ * 
+ * @route GET /api/notes
+ * @middleware jwtCheck - Requires valid JWT token
+ * @returns {Object} Array of user's notes with count
+ */
 app.get('/api/notes', jwtCheck, async (req, res) => {
     try {
-        const userId = req.user.sub; // Auth0 user ID
+        const userId = req.user.sub; // Auth0 user ID from JWT token
+        
+        // Retrieve all notes for the user
         const notes = await dbOperations.getAllNotes(userId);
+        
         res.json({
             message: 'Notes retrieved successfully',
             count: notes.length,
             notes: notes
         });
     } catch (error) {
-        console.error('Error retrieving notes:', error);
+        console.error('❌ Error retrieving notes:', error);
         res.status(500).json({
             error: 'Internal Server Error',
             message: 'Failed to retrieve notes'
@@ -161,13 +264,25 @@ app.get('/api/notes', jwtCheck, async (req, res) => {
     }
 });
 
-// GET /api/notes/:id - Get a single note by ID
+/**
+ * Get Single Note
+ * 
+ * GET /api/notes/:id
+ * 
+ * Retrieves a specific note by ID for the authenticated user.
+ * 
+ * @route GET /api/notes/:id
+ * @middleware jwtCheck - Requires valid JWT token
+ * @param {string} id - Note ID (must be positive integer)
+ * @returns {Object} Note object if found and owned by user
+ */
 app.get('/api/notes/:id', jwtCheck, async (req, res) => {
     try {
+        // Parse and validate note ID
         const noteId = parseInt(req.params.id);
-        const userId = req.user.sub; // Auth0 user ID
+        const userId = req.user.sub; // Auth0 user ID from JWT token
 
-        // Validation
+        // Validate note ID is a positive integer
         if (isNaN(noteId) || noteId <= 0) {
             return res.status(400).json({
                 error: 'Bad Request',
@@ -175,6 +290,7 @@ app.get('/api/notes/:id', jwtCheck, async (req, res) => {
             });
         }
 
+        // Retrieve the specific note (ensures user ownership)
         const note = await dbOperations.getNoteById(noteId, userId);
         res.json({
             message: 'Note retrieved successfully',
@@ -343,7 +459,19 @@ app.delete('/api/notes/:id', jwtCheck, async (req, res) => {
     }
 });
 
-// POST /api/analyze-notes - Analyze notes and generate mental health resources
+/**
+ * Analyze Notes with AI
+ * 
+ * POST /api/analyze-notes
+ * 
+ * Triggers AI-powered analysis of user's notes to generate mental health
+ * insights, resources, and recommendations using the Gemini service.
+ * 
+ * @route POST /api/analyze-notes
+ * @middleware jwtCheck - Requires valid JWT token
+ * @param {string} triggerType - Type of analysis trigger ('manual' or 'automatic')
+ * @returns {Object} Analysis results with generated resources and recommendations
+ */
 app.post('/api/analyze-notes', jwtCheck, async (req, res) => {
     try {
         if (!geminiService) {
@@ -400,7 +528,18 @@ app.post('/api/analyze-notes', jwtCheck, async (req, res) => {
     }
 });
 
-// GET /api/analysis-logs - Get all analysis logs for the user
+/**
+ * Get Analysis History
+ * 
+ * GET /api/analysis-logs
+ * 
+ * Retrieves all analysis logs for the authenticated user, including
+ * both manual and automatic analysis results.
+ * 
+ * @route GET /api/analysis-logs
+ * @middleware jwtCheck - Requires valid JWT token
+ * @returns {Object} Array of analysis logs with parsed JSON data
+ */
 app.get('/api/analysis-logs', jwtCheck, async (req, res) => {
     try {
         const userId = req.user.sub;
@@ -470,7 +609,18 @@ app.get('/api/analysis-logs/:id', jwtCheck, async (req, res) => {
     }
 });
 
-// 404 handler for undefined routes
+/**
+ * =============================================================================
+ * ERROR HANDLING MIDDLEWARE
+ * =============================================================================
+ */
+
+/**
+ * 404 Handler for Undefined Routes
+ * 
+ * Catches any requests to routes that don't exist and returns a
+ * standardized 404 error response.
+ */
 app.use((req, res) => {
     res.status(404).json({
         error: 'Not Found',
@@ -478,16 +628,32 @@ app.use((req, res) => {
     });
 });
 
-// Global error handler
+/**
+ * Global Error Handler
+ * 
+ * Catches any unhandled errors in the application and returns a
+ * standardized 500 error response. Logs the error for debugging.
+ */
 app.use((error, req, res, next) => {
-    console.error('Unhandled error:', error);
+    console.error('❌ Unhandled error:', error);
     res.status(500).json({
         error: 'Internal Server Error',
         message: 'An unexpected error occurred'
     });
 });
 
-// Start server with better error handling
+/**
+ * =============================================================================
+ * SERVER STARTUP
+ * =============================================================================
+ */
+
+/**
+ * Start the Express Server
+ * 
+ * Initializes the server with proper error handling and logging.
+ * The server listens on the configured PORT and provides startup feedback.
+ */
 const server = app.listen(PORT, () => {
     console.log(`✅ MindPath API server is running on port ${PORT}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);

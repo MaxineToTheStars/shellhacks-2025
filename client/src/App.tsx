@@ -1,3 +1,15 @@
+/**
+ * MindPath Main Application Component
+ * 
+ * This is the root component of the MindPath React application. It manages
+ * user authentication, note management, and AI analysis features. The app
+ * provides a comprehensive personal wellness platform with secure note-taking
+ * and AI-powered mental health insights.
+ * 
+ * @author MindPath Development Team
+ * @version 1.0.0
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Menu, FileText, AlertCircle, CheckCircle, Plus, Brain } from 'lucide-react';
@@ -10,21 +22,40 @@ import { AnalysisLogView } from './components/AnalysisLogView';
 import LoginPage from './components/LoginPage';
 import UserProfile from './components/UserProfile';
 
+/**
+ * Main Application Component
+ * 
+ * Manages the overall application state including:
+ * - User authentication status
+ * - Note management (CRUD operations)
+ * - AI analysis features
+ * - Error handling and loading states
+ * 
+ * @returns {JSX.Element} The main application interface
+ */
 function App() {
+  // Auth0 authentication hook
   const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0();
+  
+  // Core application state
   const [notes, setNotes] = useState<NoteType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Analysis-related state
+  // AI analysis feature state
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisNotesCount, setAnalysisNotesCount] = useState(0);
   const [isLogViewOpen, setIsLogViewOpen] = useState(false);
 
-  // Set up API service with access token provider
+  /**
+   * Initialize API Service and Load Notes
+   * 
+   * Sets up the API service with the Auth0 access token provider and
+   * loads the user's notes when authentication is complete.
+   */
   useEffect(() => {
     if (isAuthenticated) {
       apiService.setAccessTokenProvider(getAccessTokenSilently);
@@ -32,6 +63,12 @@ function App() {
     }
   }, [isAuthenticated, getAccessTokenSilently]);
 
+  /**
+   * Load User Notes
+   * 
+   * Fetches all notes for the authenticated user from the API.
+   * Handles loading states and error conditions gracefully.
+   */
   const loadNotes = async () => {
     try {
       setIsLoading(true);
@@ -39,31 +76,42 @@ function App() {
       const response = await apiService.getAllNotes();
       setNotes(response.notes || []);
     } catch (error) {
-      console.error('Error loading notes:', error);
+      console.error('❌ Error loading notes:', error);
       setError('Failed to load notes. Please make sure the server is running.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Create New Note
+   * 
+   * Creates a new note and adds it to the local state. If this is the user's
+   * 10th note, automatically triggers AI analysis after a short delay.
+   * 
+   * @param {string} title - Note title
+   * @param {string} content - Note content
+   * @throws {Error} If note creation fails
+   */
   const handleCreateNote = async (title: string, content: string) => {
     try {
       setIsCreating(true);
       setError(null);
       const response = await apiService.createNote({ title, content });
       if (response.note) {
+        // Add new note to the beginning of the list (most recent first)
         setNotes(prevNotes => [response.note!, ...prevNotes]);
         
-        // Check if this should trigger automatic analysis
+        // Check if this should trigger automatic analysis (10th note)
         if (response.shouldTriggerAnalysis) {
-          // Show a notification that analysis is being performed
+          // Show analysis modal after a short delay for better UX
           setTimeout(() => {
             handleAnalyzeNotes('automatic');
-          }, 2000); // Wait 2 seconds to show the analysis modal
+          }, 2000);
         }
       }
     } catch (error) {
-      console.error('Error creating note:', error);
+      console.error('❌ Error creating note:', error);
       setError('Failed to create note');
       throw error;
     } finally {
@@ -71,11 +119,22 @@ function App() {
     }
   };
 
+  /**
+   * Update Existing Note
+   * 
+   * Updates a note's title and content, then refreshes the local state.
+   * 
+   * @param {number} id - Note ID to update
+   * @param {string} title - New note title
+   * @param {string} content - New note content
+   * @throws {Error} If note update fails
+   */
   const handleUpdateNote = async (id: number, title: string, content: string) => {
     try {
       setError(null);
       const response = await apiService.updateNote(id, { title, content });
       if (response.note) {
+        // Update the note in the local state
         setNotes(prevNotes =>
           prevNotes.map(note =>
             note.note_id === id ? response.note! : note
@@ -83,16 +142,25 @@ function App() {
         );
       }
     } catch (error) {
-      console.error('Error updating note:', error);
+      console.error('❌ Error updating note:', error);
       setError('Failed to update note');
       throw error;
     }
   };
 
+  /**
+   * Delete Note
+   * 
+   * Deletes a note from the database and removes it from local state.
+   * 
+   * @param {number} id - Note ID to delete
+   * @throws {Error} If note deletion fails
+   */
   const handleDeleteNote = async (id: number) => {
     try {
       setError(null);
       await apiService.deleteNote(id);
+      // Remove the note from local state
       setNotes(prevNotes => prevNotes.filter(note => note.note_id !== id));
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -101,10 +169,23 @@ function App() {
     }
   };
 
+  /**
+   * Refresh Notes
+   * 
+   * Reloads all notes from the server to ensure data is up-to-date.
+   */
   const handleRefresh = () => {
     loadNotes();
   };
 
+  /**
+   * Analyze Notes with AI
+   * 
+   * Triggers AI-powered analysis of user notes to generate mental health
+   * insights and recommendations. Opens the analysis modal to display results.
+   * 
+   * @param {'manual' | 'automatic'} triggerType - How the analysis was triggered
+   */
   const handleAnalyzeNotes = async (triggerType: 'manual' | 'automatic' = 'manual') => {
     try {
       setIsAnalyzing(true);
@@ -115,7 +196,7 @@ function App() {
       setCurrentAnalysis(response.analysis);
       setAnalysisNotesCount(response.notesAnalyzed);
     } catch (error) {
-      console.error('Error analyzing notes:', error);
+      console.error('❌ Error analyzing notes:', error);
       setError('Failed to analyze notes. Please try again.');
       setIsAnalysisModalOpen(false);
     } finally {
@@ -123,16 +204,31 @@ function App() {
     }
   };
 
+  /**
+   * Close Analysis Modal
+   * 
+   * Closes the analysis modal and clears the current analysis data.
+   */
   const handleCloseAnalysisModal = () => {
     setIsAnalysisModalOpen(false);
     setCurrentAnalysis(null);
     setAnalysisNotesCount(0);
   };
 
+  /**
+   * Open Analysis Log View
+   * 
+   * Opens the modal to view past analysis results and history.
+   */
   const handleOpenLogView = () => {
     setIsLogViewOpen(true);
   };
 
+  /**
+   * Close Analysis Log View
+   * 
+   * Closes the analysis log modal.
+   */
   const handleCloseLogView = () => {
     setIsLogViewOpen(false);
   };
