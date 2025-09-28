@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Zap, Edit, FileText, X, AlertCircle, ExternalLink, Lightbulb } from 'lucide-react';
 import { AnalysisLog, AnalysisResult } from '../types';
 import { apiService } from '../services/api';
 
@@ -55,13 +56,9 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
 
   const getTriggerTypeIcon = (type: string) => {
     return type === 'automatic' ? (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
+      <Zap className="w-4 h-4" />
     ) : (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-      </svg>
+      <Edit className="w-4 h-4" />
     );
   };
 
@@ -75,9 +72,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full mr-3 flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Analysis History</h2>
@@ -90,9 +85,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
               onClick={onClose}
               className="text-white hover:text-white text-opacity-80 hover:text-opacity-100 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
@@ -112,9 +105,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
               ) : error ? (
                 <div className="text-center py-8">
                   <div className="w-12 h-12 bg-red-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <AlertCircle className="w-6 h-6 text-red-600" />
                   </div>
                   <p className="text-red-600 text-sm mb-2">{error}</p>
                   <button
@@ -127,9 +118,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
               ) : logs.length === 0 ? (
                 <div className="text-center py-8">
                   <div className="w-12 h-12 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <FileText className="w-6 h-6 text-gray-400" />
                   </div>
                   <p className="text-gray-600 text-sm">No analysis logs yet</p>
                   <p className="text-gray-500 text-xs mt-1">Create notes and analyze them to see logs here</p>
@@ -222,9 +211,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
                             className="inline-flex items-center text-sage-600 hover:text-sage-700 text-sm font-medium mt-2 transition-colors"
                           >
                             Learn more
-                            <svg className="w-3 h-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                            <ExternalLink className="w-3 h-3 ml-1" />
                           </a>
                         )}
                       </div>
@@ -244,9 +231,7 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <FileText className="w-8 h-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Log</h3>
                   <p className="text-gray-600">Choose an analysis log from the list to view details</p>
@@ -256,17 +241,6 @@ export const AnalysisLogView: React.FC<AnalysisLogViewProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          <div className="flex justify-end">
-            <button
-              onClick={onClose}
-              className="btn-primary"
-            >
-              Close
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
